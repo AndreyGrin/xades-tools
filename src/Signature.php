@@ -88,7 +88,7 @@ class Signature
      * @return string
      * @throws DOMException
      */
-    private function sign($content, bool $wrapSignatures = true): string
+    private function sign($content): string
     {
         /**
          * References between nodes
@@ -99,13 +99,7 @@ class Signature
         $dom = new DOMDocument('1.0', 'UTF-8');
 
         $signature = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Signature');
-        if ($wrapSignatures) {
-            $signatures = $dom->createElement('Signatures');
-            $dom->appendChild($signatures);
-            $signatures->appendChild($signature);
-        } else {
-            $dom->appendChild($signature);
-        }
+        $dom->appendChild($signature);
 
         $signature->setAttribute('Id', $ids['signature'] = Tools::guid());
 
