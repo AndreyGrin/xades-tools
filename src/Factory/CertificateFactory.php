@@ -39,4 +39,15 @@ class CertificateFactory
 
         return $certificate;
     }
+
+    public static function string(string $privateKey, string $publicKey, string $password): Certificate
+    {
+        $certificate = new Certificate(
+            ['cert' => $publicKey],
+            openssl_pkey_get_private([$privateKey, $password])
+        );
+        $certificate->setCertificateInfo(openssl_x509_parse($publicKey));
+
+        return $certificate;
+    }
 }

@@ -1,5 +1,5 @@
 {
-    "name": "grafinet/xades-tools",
+    "name": "markuspaks/xades-tools",
     "description": "Sign files and verify signatures using XAdES",
     "type": "library",
     "require": {

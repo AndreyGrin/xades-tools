@@ -1,6 +1,6 @@
 <?php
 
-use XadesTools\Settings;
+use XadesTools\Factory\CertificateFactory;
 use XadesTools\Signature;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -29,13 +29,14 @@ $embed = isset($argv[4]);
 $loadContent = isset($argv[5]);
 try {
     $xades = new Signature(
-        new Settings($argv[2], $argv[3])
+        CertificateFactory::load($argv[2], $argv[3])
     );
+    $xades->setEmbed($embed ? Signature::EMBED_BASE_64 : false);
     if ($embed && $loadContent) {
         $content = file_get_contents($file);
         $result = file_put_contents($file . '.XAdES', $xades->signXml($content), pathinfo($file, PATHINFO_EXTENSION));
     } else {
-        $result = file_put_contents($file . '.XAdES', $xades->signFile($file, $embed));
+        $result = file_put_contents($file . '.XAdES', $xades->signFile($file));
     }
     exit($result ? 0 : 3);
 } catch (Throwable $t) {

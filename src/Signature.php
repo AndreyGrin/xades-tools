@@ -5,9 +5,7 @@ namespace XadesTools;
 
 use DomDocument;
 use DOMException;
-use XadesTools\Exception\CertificateException;
 use XadesTools\Exception\XadesException;
-use XadesTools\Factory\CertificateFactory;
 
 use function base64_encode;
 use function basename;
@@ -24,57 +22,57 @@ use const PATHINFO_EXTENSION;
 
 class Signature
 {
-    private Certificate $certificate;
+    public const EMBED_BASE_64 = 'base64';
+    public const EMBED_IMPORT = 'import';
+
+    protected Certificate $certificate;
 
     /**
      * For XML files/content canonicalization is required
      * @var bool
      */
     private bool $c14n;
-    private bool $embed;
+    private string|false $embed = false;
 
     /**
      * @var null|string Filename for external signature
      */
     private ?string $fileName;
 
-    /**
-     * @param Settings $settings
-     * @throws CertificateException
-     */
-    public function __construct(Settings $settings)
+    public function __construct(Certificate $certificate)
     {
-        $this->certificate = CertificateFactory::load($settings->getCertPath(), $settings->getPassword());
+        $this->certificate = $certificate;
+    }
+
+    public function setEmbed(string|false $embed = self::EMBED_IMPORT): void
+    {
+        $this->embed = $embed;
     }
 
     /**
-     * @param string $content
-     * @param string $extension
+     * @param  string  $content
+     * @param  string  $extension
      * @return string
-     * @throws XadesException
      * @throws DOMException
      */
     public function signXml(string $content, string $extension = 'xml'): string
     {
         $this->c14n = true;
-        $this->embed = true;
         $this->fileName = 'file.' . $extension;
         return $this->sign($content);
     }
 
     /**
      * @param string $filePath
-     * @param bool $embedFile
      * @return string
      * @throws XadesException
      * @throws DOMException
      */
-    public function signFile(string $filePath, bool $embedFile = false): string
+    public function signFile(string $filePath): string
     {
-        $this->embed = $embedFile;
         $this->fileName = basename($filePath);
         $this->c14n = strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'xml';
-        if ($this->c14n && !$embedFile) {
+        if ($this->c14n && !$this->embed) {
             $xml = new DomDocument();
             $xml->load($filePath);
             $content = $xml->C14n();
@@ -86,11 +84,11 @@ class Signature
 
     /**
      * @param $content
+     * @param  bool  $wrapSignatures
      * @return string
-     * @throws XadesException
      * @throws DOMException
      */
-    private function sign($content): string
+    private function sign($content, bool $wrapSignatures = true): string
     {
         /**
          * References between nodes
@@ -99,13 +97,17 @@ class Signature
         $digest1 = base64_encode(Tools::sha256($content));
 
         $dom = new DOMDocument('1.0', 'UTF-8');
-        $signatures = $dom->createElement('Signatures');
 
         $signature = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Signature');
-        $signatures->appendChild($signature);
+        if ($wrapSignatures) {
+            $signatures = $dom->createElement('Signatures');
+            $dom->appendChild($signatures);
+            $signatures->appendChild($signature);
+        } else {
+            $dom->appendChild($signature);
+        }
 
         $signature->setAttribute('Id', $ids['signature'] = Tools::guid());
-        $dom->appendChild($signatures);
 
         $signedInfo = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:SignedInfo');
         $signedInfo->setAttribute('Id', Tools::guid());
@@ -133,17 +135,29 @@ class Signature
         }
 
         if ($this->embed) {
-            $objectEmbed = $dom->createElementNS(
-                Tools::NAMESPACE_DS,
-                'ds:Object',
-                trim(
-                    chunk_split(
-                        base64_encode($content),
-                        64,
-                        "\n"
+
+            if ($this->embed === self::EMBED_BASE_64) {
+                $objectEmbed = $dom->createElementNS(
+                    Tools::NAMESPACE_DS,
+                    'ds:Object',
+                    trim(
+                        chunk_split(
+                            base64_encode($content),
+                            64,
+                            "\n"
+                        )
                     )
-                )
-            );
+                );
+            } else {
+                $objectEmbed = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Object');
+
+                $contentDocument = new \DOMDocument();
+                $contentDocument->loadXML($content);
+
+                $newNode = $dom->importNode($contentDocument->documentElement, true);
+                $objectEmbed->appendChild($newNode);
+            }
+
             $signature->appendChild($objectEmbed);
             $objectEmbed->setAttribute('Encoding', Tools::ENCODING_BASE64);
             $objectEmbed->setAttribute('Id', $ids['embedded_object'] = Tools::guid());
