@@ -53,7 +53,8 @@ class Certificate
     {
         $issuerComponents = [];
         foreach ($this->certificateInfo['issuer'] as $componentKey => $componentValue) {
-            $issuerComponents[] = $componentKey . '=' . $componentValue;
+            $issuerComponents[] = $componentKey . '='
+                . (is_array($componentValue) ? implode(';', $componentValue) : $componentValue);
         }
         return implode(',', array_reverse($issuerComponents));
     }
