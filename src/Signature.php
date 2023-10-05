@@ -173,6 +173,14 @@ class Signature
         $reference2 = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Reference');
         $reference2->setAttribute('Id', Tools::guid());
 
+        if ($this->c14n || $this->embed) {
+            $transforms = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transforms');
+            $reference2->appendChild($transforms);
+            $transform = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transform');
+            $transform->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION);
+            $transforms->appendChild($transform);
+        }
+
         $reference2->setAttribute('Type', Tools::TYPE_SIGNED_PROPERTIES);
         $signedInfo->appendChild($reference2);
 
@@ -182,6 +190,14 @@ class Signature
 
         $reference3 = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Reference');
         $reference3->setAttribute('Id', Tools::guid());
+
+        if ($this->c14n || $this->embed) {
+            $transforms = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transforms');
+            $reference3->appendChild($transforms);
+            $transform = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transform');
+            $transform->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION);
+            $transforms->appendChild($transform);
+        }
 
         $reference3->setAttribute('Type', Tools::TYPE_KEY_INFO);
         $signedInfo->appendChild($reference3);
