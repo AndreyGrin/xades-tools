@@ -271,32 +271,6 @@ class Signature
             )
         );
 
-        $signingCertificate = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:SigningCertificate');
-        $signedSignatureProperties->appendChild($signingCertificate);
-
-        $xadesCert = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:Cert');
-        $signingCertificate->appendChild($xadesCert);
-
-        $xadesCertDigest = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:CertDigest');
-        $xadesCert->appendChild($xadesCertDigest);
-
-        $digestMethod3 = $dom->createelementNS(Tools::NAMESPACE_DS, 'ds:DigestMethod');
-        $digestMethod3->setAttribute('Algorithm', "http://www.w3.org/2001/04/xmlenc#sha256");
-        $xadesCertDigest->appendChild($digestMethod3);
-        $xadesCertDigest->appendChild(
-            $dom->createelementNS(Tools::NAMESPACE_DS, 'ds:DigestValue', $this->certificate->getFingerPrint())
-        );
-
-        $xadesIssuerSerial = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:IssuerSerial');
-        $xadesCert->appendChild($xadesIssuerSerial);
-
-        $xadesIssuerSerial->appendChild(
-            $dom->createelementNS(Tools::NAMESPACE_DS, 'ds:X509IssuerName', $this->certificate->getIssuer())
-        );
-        $xadesIssuerSerial->appendChild(
-            $dom->createelementNS(Tools::NAMESPACE_DS, 'ds:X509SerialNumber', $this->certificate->getSerialNumber())
-        );
-
         $signedPropertiesToDigest = $signedProperties->C14N();
 
         $xmlDigest = base64_encode(Tools::sha256($signedPropertiesToDigest));
