@@ -297,69 +297,6 @@ class Signature
             $dom->createelementNS(Tools::NAMESPACE_DS, 'ds:X509SerialNumber', $this->certificate->getSerialNumber())
         );
 
-        $signedDataObjectProperties = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:SignedDataObjectProperties');
-        $signedProperties->appendChild($signedDataObjectProperties);
-
-        $dataObjectFormat = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:DataObjectFormat');
-        $dataObjectFormat->setAttribute('ObjectReference', "#" . $ids['reference1']);
-        $signedDataObjectProperties->appendChild($dataObjectFormat);
-
-        if ($this->c14n) {
-            $dataObjectFormat->appendChild(
-                $dom->createelementNS(
-                    Tools::NAMESPACE_XADES,
-                    'xades:Description',
-                    'Dokument w formacie xml [XML]'
-                )
-            );
-            $dataObjectFormat->appendChild(
-                $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:MimeType', 'text/plain')
-            );
-        } else {
-            $dataObjectFormat->appendChild(
-                $dom->createelementNS(
-                    Tools::NAMESPACE_XADES,
-                    'xades:Description',
-                    'Plik [' . strtoupper(pathinfo($this->fileName, PATHINFO_EXTENSION)) . ']'
-                )
-            );
-            $dataObjectFormat->appendChild(
-                $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:MimeType', 'application/octet-stream')
-            );
-        }
-        if ($this->embed) {
-            $dataObjectFormat->appendChild(
-                $dom->createelementNS(
-                    Tools::NAMESPACE_XADES,
-                    'xades:Encoding',
-                    'http://www.w3.org/2000/09/xmldsig#base64'
-                )
-            );
-        } else {
-            $xadesCommitmentTypeIndication = $dom->createelementNS(
-                Tools::NAMESPACE_XADES,
-                'xades:CommitmentTypeIndication'
-            );
-            $signedDataObjectProperties->appendChild($xadesCommitmentTypeIndication);
-
-            $xadesCommitmentTypeId = $dom->createelementNS(Tools::NAMESPACE_XADES, 'xades:CommitmentTypeId');
-            $xadesCommitmentTypeIndication->appendChild($xadesCommitmentTypeId);
-
-            $xadesCommitmentTypeId->appendChild(
-                $dom->createelementNS(
-                    Tools::NAMESPACE_XADES,
-                    'xades:Identifier',
-                    'http://uri.etsi.org/01903/v1.2.2#ProofOfApproval'
-                )
-            );
-            $xadesCommitmentTypeIndication->appendChild(
-                $dom->createelementNS(
-                    Tools::NAMESPACE_XADES,
-                    'xades:AllSignedDataObjects'
-                )
-            );
-        }
-
         $signedPropertiesToDigest = $signedProperties->C14N();
 
         $xmlDigest = base64_encode(Tools::sha256($signedPropertiesToDigest));
