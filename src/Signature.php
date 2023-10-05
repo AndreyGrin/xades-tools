@@ -157,7 +157,7 @@ class Signature
             $objectEmbed->setAttribute('Id', $ids['embedded_object'] = Tools::guid());
             $objectEmbed->setAttribute('MimeType', $this->c14n ? 'text/plain' : 'application/octet-stream');
 
-            $digest1 = base64_encode(Tools::sha256($objectEmbed->C14N()));
+            $digest1 = base64_encode(Tools::sha256($objectEmbed->C14N(true)));
 
             $reference1->setAttribute('URI', "#" . $ids['embedded_object']);
         } else {
@@ -234,7 +234,7 @@ class Signature
             )
         );
 
-        $keyInfoToDigest = $keyInfo->C14N();
+        $keyInfoToDigest = $keyInfo->C14N(true);
         $xmlDigest = base64_encode(Tools::sha256($keyInfoToDigest));
         $reference3->appendChild($dom->createElementNS(Tools::NAMESPACE_DS, 'DigestValue', $xmlDigest));
 
@@ -271,7 +271,7 @@ class Signature
             )
         );
 
-        $signedPropertiesToDigest = $signedProperties->C14N();
+        $signedPropertiesToDigest = $signedProperties->C14N(true);
 
         $xmlDigest = base64_encode(Tools::sha256($signedPropertiesToDigest));
 
