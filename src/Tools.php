@@ -7,7 +7,7 @@ use Symfony\Component\Uid\Uuid;
 class Tools
 {
     public const ALGORITHM_CANONICAL_XML = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
-    public const ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
+    public const ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION = 'http://www.w3.org/2001/10/xml-exc-c14n#';
 
     public const DATE_FORMAT = 'Y-m-d\TH:i:sp';
     public const NAMESPACE_DS = "http://www.w3.org/2000/09/xmldsig#";
