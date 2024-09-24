@@ -1,6 +1,6 @@
 {
-    "name": "markuspaks/xades-tools",
-    "description": "Sign files and verify signatures using XAdES",
+    "name": "andreygrin/xades-tools",
+    "description": "Sign files, xml content and verify signatures using XAdES",
     "type": "library",
     "require": {
         "php": "^8.1",
