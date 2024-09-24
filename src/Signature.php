@@ -245,6 +245,32 @@ class Signature
 
         $certDigest->appendChild($digestMethod);
 
+        $mime = $dom->createelementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:MimeType',
+            'application/octet-stream'
+        );
+
+        $dataObjectFormat = $dom->createelementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:DataObjectFormat'
+        );
+
+        $dataObjectFormat->appendChild($mime);
+
+        $dataObjectFormat->setAttribute('ObjectReference', "r-{$ids['signature']}-1");
+
+        $signedDataObjectProperties = $dom->createElementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:SignedDataObjectProperties'
+        );
+
+        $signedDataObjectProperties->appendChild($dataObjectFormat);
+
+        $signedProperties->appendChild($signedDataObjectProperties);
+
+        $signedPropertiesToDigest = $signedProperties->C14N(exclusive: true, withComments: true);
+
         $digestValue = $dom->createelementNS(
             Tools::NAMESPACE_DS,
             'ds:DigestValue',
@@ -279,32 +305,6 @@ class Signature
                 $this->certificate->getCertificateInfo()['serialNumber']
             )
         );
-
-        $mime = $dom->createelementNS(
-            Tools::NAMESPACE_XADES,
-            'xades:MimeType',
-            'application/octet-stream'
-        );
-
-        $dataObjectFormat = $dom->createelementNS(
-            Tools::NAMESPACE_XADES,
-            'xades:DataObjectFormat'
-        );
-
-        $dataObjectFormat->appendChild($mime);
-
-        $dataObjectFormat->setAttribute('ObjectReference', "r-{$ids['signature']}-1");
-
-        $signedDataObjectProperties = $dom->createElementNS(
-            Tools::NAMESPACE_XADES,
-            'xades:SignedDataObjectProperties'
-        );
-
-        $signedDataObjectProperties->appendChild($dataObjectFormat);
-
-        $signedProperties->appendChild($signedDataObjectProperties);
-
-        $signedPropertiesToDigest = $signedProperties->C14N(exclusive: true, withComments: true);
 
         $xmlDigest = base64_encode(Tools::sha256($signedPropertiesToDigest));
         $reference2->appendChild($dom->createElementNS(Tools::NAMESPACE_DS, 'DigestValue', $xmlDigest));
