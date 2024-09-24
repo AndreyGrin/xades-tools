@@ -2,7 +2,7 @@
     "name": "andreygrin/xades-tools",
     "description": "Sign files, xml content and verify signatures using XAdES",
     "type": "library",
-    "version": "0.1",
+    "version": "1.0.0",
     "require": {
         "php": "^8.1",
         "ext-dom": "*",
@@ -20,5 +20,7 @@
     "require-dev": {
         "phpunit/phpunit": "^9.5",
         "symfony/var-dumper": ">=5.4"
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
