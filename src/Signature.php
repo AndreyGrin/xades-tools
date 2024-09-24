@@ -104,11 +104,10 @@ class Signature
         $signature->setAttribute('Id', $ids['signature'] = Tools::guid());
 
         $signedInfo = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:SignedInfo');
-        $signedInfo->setAttribute('Id', Tools::guid());
         $signature->appendChild($signedInfo);
 
         $canonicalizationMethod = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:CanonicalizationMethod');
-        $canonicalizationMethod->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION);
+        $canonicalizationMethod->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION_WITH_COMMENTS);
         $signedInfo->appendChild($canonicalizationMethod);
 
         $signatureMethod = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:SignatureMethod');
@@ -116,50 +115,26 @@ class Signature
         $signedInfo->appendChild($signatureMethod);
 
         $reference1 = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Reference');
-        $reference1->setAttribute('Id', $ids['reference1'] = Tools::guid());
+        $reference1->setAttribute('Id', "r-{$ids['signature']}-1");
 
         $signedInfo->appendChild($reference1);
 
         if ($this->c14n || $this->embed) {
             $transforms = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transforms');
-            $reference1->appendChild($transforms);
             $transform = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transform');
             $transform->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION);
+            $transformSignature = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transform');
+            $transformSignature->setAttribute('Algorithm', 'http://www.w3.org/TR/1999/REC-xpath-19991116');
+            $transformSignature->appendChild(
+                $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:XPath', 'not(ancestor-or-self::ds:Signature)')
+            );
+            $transforms->appendChild($transformSignature);
             $transforms->appendChild($transform);
+            $reference1->appendChild($transforms);
         }
 
         if ($this->embed) {
-
-            if ($this->embed === self::EMBED_BASE_64) {
-                $objectEmbed = $dom->createElementNS(
-                    Tools::NAMESPACE_DS,
-                    'ds:Object',
-                    trim(
-                        chunk_split(
-                            base64_encode($content),
-                            64,
-                            "\n"
-                        )
-                    )
-                );
-            } else {
-                $objectEmbed = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Object');
-
-                $contentDocument = new \DOMDocument();
-                $contentDocument->loadXML($content);
-
-                $newNode = $dom->importNode($contentDocument->documentElement, true);
-                $objectEmbed->appendChild($newNode);
-            }
-
-            $signature->appendChild($objectEmbed);
-            $objectEmbed->setAttribute('Encoding', Tools::ENCODING_BASE64);
-            $objectEmbed->setAttribute('Id', $ids['embedded_object'] = Tools::guid());
-            $objectEmbed->setAttribute('MimeType', $this->c14n ? 'text/plain' : 'application/octet-stream');
-
-            $digest1 = base64_encode(Tools::sha256($objectEmbed->C14N(true)));
-
-            $reference1->setAttribute('URI', "#" . $ids['embedded_object']);
+            $reference1->setAttribute('URI', "");
         } else {
             $objectEmbed = null;
             $reference1->setAttribute('URI', $this->fileName);
@@ -171,43 +146,25 @@ class Signature
         $reference1->appendChild($dom->createElementNS(Tools::NAMESPACE_DS, 'DigestValue', $digest1));
 
         $reference2 = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Reference');
-        $reference2->setAttribute('Id', Tools::guid());
+        $reference2->setAttribute('Type', Tools::TYPE_SIGNED_PROPERTIES);
+        $reference2->setAttribute('URI', '#ICB_PL-xades-' . $ids['signature']);
 
         if ($this->c14n || $this->embed) {
             $transforms = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transforms');
             $reference2->appendChild($transforms);
             $transform = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transform');
-            $transform->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION);
+            $transform->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION_WITH_COMMENTS);
             $transforms->appendChild($transform);
         }
 
-        $reference2->setAttribute('Type', Tools::TYPE_SIGNED_PROPERTIES);
         $signedInfo->appendChild($reference2);
 
         $digestMethod2 = $dom->createElementNS(Tools::NAMESPACE_DS, 'DigestMethod');
         $digestMethod2->setAttribute('Algorithm', "http://www.w3.org/2001/04/xmlenc#sha256");
         $reference2->appendChild($digestMethod2);
 
-        $reference3 = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Reference');
-        $reference3->setAttribute('Id', Tools::guid());
-
-        if ($this->c14n || $this->embed) {
-            $transforms = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transforms');
-            $reference3->appendChild($transforms);
-            $transform = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transform');
-            $transform->setAttribute('Algorithm', Tools::ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION);
-            $transforms->appendChild($transform);
-        }
-
-        $reference3->setAttribute('Type', Tools::TYPE_KEY_INFO);
-        $signedInfo->appendChild($reference3);
-
-        $digestMethod3 = $dom->createElementNS(Tools::NAMESPACE_DS, 'DigestMethod');
-        $digestMethod3->setAttribute('Algorithm', "http://www.w3.org/2001/04/xmlenc#sha256");
-        $reference3->appendChild($digestMethod3);
-
         $signatureValue = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:SignatureValue');
-        $signatureValue->setAttribute('Id', Tools::guid());
+        $signatureValue->setAttribute('Id', 'value-' . $ids['signature']);
         if ($objectEmbed) {
             $signature->insertBefore($signatureValue, $objectEmbed);
         } else {
@@ -215,14 +172,11 @@ class Signature
         }
 
         $keyInfo = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:KeyInfo');
-        $keyInfo->setAttribute('Id', $ids['key_info'] = Tools::guid());
         if ($objectEmbed) {
             $signature->insertBefore($keyInfo, $objectEmbed);
         } else {
             $signature->appendChild($keyInfo);
         }
-
-        $reference3->setAttribute('URI', "#" . $ids['key_info']);
 
         $x509data = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:X509Data');
         $keyInfo->appendChild($x509data);
@@ -230,13 +184,9 @@ class Signature
             $dom->createElementNS(
                 Tools::NAMESPACE_DS,
                 'ds:X509Certificate',
-                $this->certificate->getCertificate()
+                str_replace(PHP_EOL, '', $this->certificate->getCertificate())
             )
         );
-
-        $keyInfoToDigest = $keyInfo->C14N(true);
-        $xmlDigest = base64_encode(Tools::sha256($keyInfoToDigest));
-        $reference3->appendChild($dom->createElementNS(Tools::NAMESPACE_DS, 'DigestValue', $xmlDigest));
 
         $object = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Object');
         if ($objectEmbed) {
@@ -248,15 +198,12 @@ class Signature
         $qualifyingProperties = $dom->createElementNS(
             Tools::NAMESPACE_XADES, 'xades:QualifyingProperties'
         );
-        $qualifyingProperties->setAttribute('Id', Tools::guid());
         $qualifyingProperties->setAttribute('Target', "#" . $ids['signature']);
         $object->appendChild($qualifyingProperties);
 
         $signedProperties = $dom->createElementNS(Tools::NAMESPACE_XADES, 'xades:SignedProperties');
-        $signedProperties->setAttribute('Id', $ids['signed_properties'] = Tools::guid());
+        $signedProperties->setAttribute('Id', "ICB_PL-xades-{$ids['signature']}");
         $qualifyingProperties->appendChild($signedProperties);
-
-        $reference2->setAttribute('URI', "#" . $ids['signed_properties']);
 
         $signedSignatureProperties = $dom->createelementNS(
             Tools::NAMESPACE_XADES, 'xades:SignedSignatureProperties'
@@ -271,21 +218,106 @@ class Signature
             )
         );
 
-        $signedPropertiesToDigest = $signedProperties->C14N(true);
+        $signingCertificate = $signedSignatureProperties->appendChild(
+            $dom->createelementNS(
+                Tools::NAMESPACE_XADES,
+                'xades:SigningCertificate'
+            )
+        );
+        $certNode = $signingCertificate->appendChild(
+            $dom->createelementNS(
+                Tools::NAMESPACE_XADES,
+                'xades:Cert'
+            )
+        );
+
+        $certDigest = $dom->createelementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:CertDigest'
+        );
+
+        $digestMethod = $dom->createelementNS(
+            Tools::NAMESPACE_DS,
+            'ds:DigestMethod'
+        );
+
+        $digestMethod->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
+
+        $certDigest->appendChild($digestMethod);
+
+        $digestValue = $dom->createelementNS(
+            Tools::NAMESPACE_DS,
+            'ds:DigestValue',
+            base64_encode(Tools::sha256($signedPropertiesToDigest))
+        );
+
+        $certDigest->appendChild($digestValue);
+
+        $certNode->appendChild($certDigest);
+
+        $issuerSerial = $certNode->appendChild(
+            $dom->createelementNS(
+                Tools::NAMESPACE_XADES,
+                'xades:IssuerSerial'
+            )
+        );
+
+        $certIssuer = $this->certificate->getCertificateInfo()['issuer'];
+
+        $issuerSerial->appendChild(
+            $dom->createelementNS(
+                Tools::NAMESPACE_XADES,
+                'xades:X509IssuerName',
+                "CN={$certIssuer['CN']},OU={$certIssuer['OU']},O={$certIssuer['O']},C={$certIssuer['C']}"
+            )
+        );
+
+        $issuerSerial->appendChild(
+            $dom->createelementNS(
+                Tools::NAMESPACE_XADES,
+                'xades:X509SerialNumber',
+                $this->certificate->getCertificateInfo()['serialNumber']
+            )
+        );
+
+        $mime = $dom->createelementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:MimeType',
+            'application/octet-stream'
+        );
+
+        $dataObjectFormat = $dom->createelementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:DataObjectFormat'
+        );
+
+        $dataObjectFormat->appendChild($mime);
+
+        $dataObjectFormat->setAttribute('ObjectReference', "r-{$ids['signature']}-1");
+
+        $signedDataObjectProperties = $dom->createElementNS(
+            Tools::NAMESPACE_XADES,
+            'xades:SignedDataObjectProperties'
+        );
+
+        $signedDataObjectProperties->appendChild($dataObjectFormat);
+
+        $signedProperties->appendChild($signedDataObjectProperties);
+
+        $signedPropertiesToDigest = $signedProperties->C14N(exclusive: true, withComments: true);
 
         $xmlDigest = base64_encode(Tools::sha256($signedPropertiesToDigest));
-
         $reference2->appendChild($dom->createElementNS(Tools::NAMESPACE_DS, 'DigestValue', $xmlDigest));
 
         $actualDigest = '';
         openssl_sign(
-            $signedInfo->C14N(),
+            $signedInfo->C14N(true, true),
             $actualDigest,
             $this->certificate->getPrivateKey(),
             'sha256WithRSAEncryption'
         );
 
-        $signatureValue->textContent = chunk_split(base64_encode($actualDigest), 64, "\n");
+        $signatureValue->textContent = base64_encode($actualDigest);
 
         if ($signed = $dom->saveXML()) {
             return $signed;

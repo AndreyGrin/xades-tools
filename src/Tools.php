@@ -8,6 +8,7 @@ class Tools
 {
     public const ALGORITHM_CANONICAL_XML = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
     public const ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION = 'http://www.w3.org/2001/10/xml-exc-c14n#';
+    public const ALGORITHM_EXCLUSIVE_XML_CANONICALIZATION_WITH_COMMENTS = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments';
 
     public const DATE_FORMAT = 'Y-m-d\TH:i:sp';
     public const NAMESPACE_DS = "http://www.w3.org/2000/09/xmldsig#";
@@ -24,7 +25,7 @@ class Tools
 
     public static function guid(): string
     {
-        return 'ID-' . Uuid::v4();
+        return 'id-' . Uuid::v4();
     }
 
     public static function sha256($content): string

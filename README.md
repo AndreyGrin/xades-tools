@@ -1,13 +1,19 @@
+Updated version, includes IssuerSerial information with cert serial number and issuer details.
 # API:
 
 ### Signing
 
 ```php
-use XadesTools\Settings;
+use XadesTools\CertificateFactory;
 use XadesTools\Signature;
-$settings = new Settings($pathToCertificate, $passphrase);
-$xades = new Signature($settings);
-$signedXmlAsString = $xades->signFile($file, $embed);
+$cert = CertificateFactory::string(
+    $privateKeyContents, // .pem
+    $certificateContents, // .crt
+    $parivateKeyPassword // string
+);
+
+$this->signer = new Signature($cert);
+$this->signer->signXml('xmlContent') // returns signature, you should add it to the xml file the way you need to have it there.
 ```
 
 ### Verification, content extraction
