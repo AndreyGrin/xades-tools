@@ -15,7 +15,6 @@ use function file_get_contents;
 use function openssl_sign;
 use function pathinfo;
 use function strtolower;
-use function strtoupper;
 use function trim;
 
 use const PATHINFO_EXTENSION;
@@ -134,7 +133,36 @@ class Signature
         }
 
         if ($this->embed) {
-            $reference1->setAttribute('URI', "");
+            if ($this->embed === self::EMBED_BASE_64) {
+                $objectEmbed = $dom->createElementNS(
+                    Tools::NAMESPACE_DS,
+                    'ds:Object',
+                    trim(
+                        chunk_split(
+                            base64_encode($content),
+                            64,
+                            "\n"
+                        )
+                    )
+                );
+            } else {
+                $objectEmbed = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Object');
+
+                $contentDocument = new \DOMDocument();
+                $contentDocument->loadXML($content);
+
+                $newNode = $dom->importNode($contentDocument->documentElement, true);
+                $objectEmbed->appendChild($newNode);
+            }
+
+            $signature->appendChild($objectEmbed);
+            $objectEmbed->setAttribute('Encoding', Tools::ENCODING_BASE64);
+            $objectEmbed->setAttribute('Id', $ids['embedded_object'] = Tools::guid());
+            $objectEmbed->setAttribute('MimeType', $this->c14n ? 'text/plain' : 'application/octet-stream');
+
+            $digest1 = base64_encode(Tools::sha256($objectEmbed->C14N(true)));
+
+            $reference1->setAttribute('URI', "#" . $ids['embedded_object']);
         } else {
             $objectEmbed = null;
             $reference1->setAttribute('URI', $this->fileName);
@@ -147,7 +175,7 @@ class Signature
 
         $reference2 = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Reference');
         $reference2->setAttribute('Type', Tools::TYPE_SIGNED_PROPERTIES);
-        $reference2->setAttribute('URI', '#ICB_PL-xades-' . $ids['signature']);
+        $reference2->setAttribute('URI', '#ICB-xades-' . $ids['signature']);
 
         if ($this->c14n || $this->embed) {
             $transforms = $dom->createElementNS(Tools::NAMESPACE_DS, 'ds:Transforms');
@@ -202,7 +230,7 @@ class Signature
         $object->appendChild($qualifyingProperties);
 
         $signedProperties = $dom->createElementNS(Tools::NAMESPACE_XADES, 'xades:SignedProperties');
-        $signedProperties->setAttribute('Id', "ICB_PL-xades-{$ids['signature']}");
+        $signedProperties->setAttribute('Id', "ICB-xades-{$ids['signature']}");
         $qualifyingProperties->appendChild($signedProperties);
 
         $signedSignatureProperties = $dom->createelementNS(
